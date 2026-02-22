@@ -8,6 +8,7 @@
   "permissions": [
     "core:default",
     "core:event:default",
-    "log:default"
+    "log:default",
+    "notification:default"
   ]
 }

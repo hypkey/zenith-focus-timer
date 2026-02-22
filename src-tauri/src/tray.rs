@@ -18,7 +18,10 @@ const ICON_BREAK: Image<'static> = tauri::include_image!("icons/tray/tray_break.
 fn icon_for_state(status: TimerStatus, session_type: SessionType) -> Image<'static> {
     match (status, session_type) {
         (TimerStatus::Running | TimerStatus::Paused, SessionType::Work) => ICON_WORKING,
-        (TimerStatus::Running | TimerStatus::Paused, SessionType::ShortBreak | SessionType::LongBreak) => ICON_BREAK,
+        (
+            TimerStatus::Running | TimerStatus::Paused,
+            SessionType::ShortBreak | SessionType::LongBreak,
+        ) => ICON_BREAK,
         (TimerStatus::Idle, _) => ICON_IDLE,
     }
 }
@@ -56,49 +59,53 @@ pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         .icon_as_template(true)
         .menu(&menu)
         .show_menu_on_left_click(false)
-        .on_menu_event(move |app: &tauri::AppHandle<tauri::Wry>, event: tauri::menu::MenuEvent| {
-            let id = event.id.as_ref();
-            if id == "show_window" {
-                if let Some(w) = app.get_webview_window("main") {
-                    let _ = w.show();
-                    let _ = w.set_focus();
-                }
-            } else if id == "hide_window" {
-                if let Some(w) = app.get_webview_window("main") {
-                    let _ = w.hide();
-                }
-            } else if id == "start_pause" {
-                let timer = app.state::<crate::timer::Timer>();
-                let state = timer.get_state();
-                match state.status {
-                    TimerStatus::Idle => {
-                        timer.start(app.clone());
+        .on_menu_event(
+            move |app: &tauri::AppHandle<tauri::Wry>, event: tauri::menu::MenuEvent| {
+                let id = event.id.as_ref();
+                if id == "show_window" {
+                    if let Some(w) = app.get_webview_window("main") {
+                        let _ = w.show();
+                        let _ = w.set_focus();
                     }
-                    TimerStatus::Paused => {
-                        timer.resume(app.clone());
+                } else if id == "hide_window" {
+                    if let Some(w) = app.get_webview_window("main") {
+                        let _ = w.hide();
                     }
-                    TimerStatus::Running => {
-                        timer.pause(&app);
+                } else if id == "start_pause" {
+                    let timer = app.state::<crate::timer::Timer>();
+                    let state = timer.get_state();
+                    match state.status {
+                        TimerStatus::Idle => {
+                            timer.start(app.clone());
+                        }
+                        TimerStatus::Paused => {
+                            timer.resume(app.clone());
+                        }
+                        TimerStatus::Running => {
+                            timer.pause(&app);
+                        }
+                    }
+                } else if id == "reset" {
+                    let timer = app.state::<crate::timer::Timer>();
+                    timer.reset(&app);
+                }
+            },
+        )
+        .on_tray_icon_event(
+            move |tray: &tauri::tray::TrayIcon<tauri::Wry>, event: tauri::tray::TrayIconEvent| {
+                if let TrayIconEvent::Click {
+                    button: MouseButton::Left,
+                    button_state: MouseButtonState::Up,
+                    ..
+                } = event
+                {
+                    if let Some(w) = tray.app_handle().get_webview_window("main") {
+                        let _ = w.show();
+                        let _ = w.set_focus();
                     }
                 }
-            } else if id == "reset" {
-                let timer = app.state::<crate::timer::Timer>();
-                timer.reset(&app);
-            }
-        })
-        .on_tray_icon_event(move |tray: &tauri::tray::TrayIcon<tauri::Wry>, event: tauri::tray::TrayIconEvent| {
-            if let TrayIconEvent::Click {
-                button: MouseButton::Left,
-                button_state: MouseButtonState::Up,
-                ..
-            } = event
-            {
-                if let Some(w) = tray.app_handle().get_webview_window("main") {
-                    let _ = w.show();
-                    let _ = w.set_focus();
-                }
-            }
-        })
+            },
+        )
         .build(app)?;
 
     let _ = TRAY_ID.set(tray.id().as_ref().to_string());

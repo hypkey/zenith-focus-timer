@@ -4,6 +4,7 @@ use tauri::{AppHandle, Emitter};
 use tokio::time::{interval, Duration};
 
 use crate::models::{SessionType, TimerState, TimerStatus};
+use crate::notifications;
 use crate::tray;
 
 #[cfg(debug_assertions)]
@@ -160,6 +161,7 @@ async fn tick_loop(state: Arc<Mutex<TimerState>>, app: AppHandle) {
                 tray::update_tray_icon(&app_clone, status, session_type);
             });
 
+            notifications::notify_session_complete(&app, &completed_snapshot);
             let _ = app.emit("session-complete", &completed_snapshot);
             let _ = app.emit("timer-tick", &next_snapshot);
             break;

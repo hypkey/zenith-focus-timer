@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "generate-tray-icons": "node scripts/generate-tray-icons.cjs",
+    "generate-sounds": "node scripts/generate-sounds.cjs",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json",
     "tauri": "tauri",
@@ -30,6 +31,7 @@
   "dependencies": {
     "@fontsource-variable/plus-jakarta-sans": "^5.2.8",
     "@tauri-apps/api": "^2.10.1",
+    "@tauri-apps/plugin-notification": "^2.3.3",
     "bits-ui": "^2.16.2",
     "clsx": "^2.1.1",
     "lucide-svelte": "^0.575.0",

@@ -1,4 +1,7 @@
+mod audio;
+mod db;
 mod models;
+mod notifications;
 mod settings;
 mod timer;
 mod tray;
@@ -61,6 +64,7 @@ fn update_settings(
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_log::Builder::default().build())
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
@@ -71,6 +75,8 @@ pub fn run() {
         .setup(|app| {
             let app_data_dir = app.path().app_data_dir()?;
             let loaded_settings = settings::load_settings(&app_data_dir);
+
+            db::init_db(&app_data_dir)?;
 
             app.manage(Timer::new());
             app.manage(Mutex::new(loaded_settings));

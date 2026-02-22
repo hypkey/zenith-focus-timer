@@ -63,10 +63,7 @@ pub fn load_settings(app_data_dir: &PathBuf) -> AppSettings {
     }
 }
 
-pub fn save_settings(
-    app_data_dir: &PathBuf,
-    settings: &AppSettings,
-) -> Result<(), String> {
+pub fn save_settings(app_data_dir: &PathBuf, settings: &AppSettings) -> Result<(), String> {
     fs::create_dir_all(app_data_dir).map_err(|e| format!("Failed to create app data dir: {e}"))?;
 
     let json =
