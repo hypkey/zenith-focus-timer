@@ -2,6 +2,8 @@
 	import { invoke } from "@tauri-apps/api/core";
 	import { Tabs, TabsContent, TabsList, TabsTrigger } from "$lib/components/ui/tabs";
 	import Timer from "$lib/components/Timer.svelte";
+	import Stats from "$lib/components/Stats.svelte";
+	import Settings from "$lib/components/Settings.svelte";
 	import type { AppSettings } from "$lib/types";
 
 	let activeTab = $state("timer");
@@ -12,6 +14,11 @@
 			showStats = s.show_stats;
 		});
 	});
+
+	async function refreshSettings() {
+		const s = await invoke<AppSettings>("get_settings");
+		showStats = s.show_stats;
+	}
 </script>
 
 <main class="flex flex-col h-screen bg-background">
@@ -34,12 +41,12 @@
 
 		{#if showStats}
 			<TabsContent value="stats" class="flex-1 min-h-0 mt-0 overflow-auto">
-				<div class="py-8 text-center text-muted-foreground">Stats coming in Phase 3</div>
+				<Stats />
 			</TabsContent>
 		{/if}
 
 		<TabsContent value="settings" class="flex-1 min-h-0 mt-0 overflow-auto">
-			<div class="py-8 text-center text-muted-foreground">Settings coming in Phase 4</div>
+			<Settings onSettingsChange={refreshSettings} />
 		</TabsContent>
 	</Tabs>
 </main>

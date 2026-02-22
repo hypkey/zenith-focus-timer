@@ -8,6 +8,8 @@ export interface TimerState {
   remaining_secs: number;
   total_secs: number;
   sessions_completed: number;
+  start_time?: string | null;
+  tag_id?: number | null;
 }
 
 export interface AppSettings {
@@ -23,4 +25,45 @@ export interface AppSettings {
   launch_at_login: boolean;
   notification_sound_enabled: boolean;
   tick_sound_enabled: boolean;
+}
+
+export interface Session {
+  id: number;
+  start_time: string;
+  end_time: string | null;
+  duration_s: number;
+  session_type: SessionType;
+  tag_id: number | null;
+  completed: boolean;
+  created_at: string;
+}
+
+export interface Tag {
+  id: number;
+  name: string;
+  color: string;
+  created_at: string;
+}
+
+export interface TagSummary {
+  tag_name: string;
+  tag_color: string;
+  total_secs: number;
+}
+
+export interface DailyStats {
+  total_focus_secs: number;
+  session_count: number;
+  sessions_by_tag: TagSummary[];
+}
+
+export interface DaySummary {
+  date: string;
+  total_secs: number;
+}
+
+export interface WeeklyStats {
+  total_focus_secs: number;
+  daily_breakdown: DaySummary[];
+  average_per_day: number;
 }

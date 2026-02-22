@@ -1,8 +1,10 @@
 use std::sync::{Arc, Mutex};
 
-use tauri::{AppHandle, Emitter};
+use chrono::Utc;
+use tauri::{AppHandle, Emitter, Manager};
 use tokio::time::{interval, Duration};
 
+use crate::db;
 use crate::models::{SessionType, TimerState, TimerStatus};
 use crate::notifications;
 use crate::tray;
@@ -35,16 +37,20 @@ impl Timer {
                 remaining_secs: WORK_DURATION,
                 total_secs: WORK_DURATION,
                 sessions_completed: 0,
+                start_time: None,
+                tag_id: None,
             })),
         }
     }
 
-    pub fn start(&self, app: AppHandle) {
+    pub fn start(&self, app: AppHandle, tag_id: Option<i64>) {
         let mut state = self.state.lock().unwrap();
         if state.status == TimerStatus::Running {
             return;
         }
         state.status = TimerStatus::Running;
+        state.start_time = Some(Utc::now().to_rfc3339());
+        state.tag_id = tag_id;
         let snapshot = state.clone();
         drop(state);
         tray::update_tray_icon(&app, snapshot.status.clone(), snapshot.session_type.clone());
@@ -69,6 +75,9 @@ impl Timer {
             return;
         }
         state.status = TimerStatus::Running;
+        if state.start_time.is_none() {
+            state.start_time = Some(Utc::now().to_rfc3339());
+        }
         let snapshot = state.clone();
         drop(state);
         tray::update_tray_icon(&app, snapshot.status.clone(), snapshot.session_type.clone());
@@ -79,6 +88,7 @@ impl Timer {
         let mut state = self.state.lock().unwrap();
         state.status = TimerStatus::Idle;
         state.remaining_secs = state.total_secs;
+        state.start_time = None;
         let snapshot = state.clone();
         drop(state);
 
@@ -89,6 +99,20 @@ impl Timer {
 
     pub fn skip(&self, app: &AppHandle) {
         let mut state = self.state.lock().unwrap();
+        if let Some(ref start_time) = state.start_time {
+            if let Ok(app_data_dir) = app.path().app_data_dir() {
+                let _ = db::insert_session(
+                    &app_data_dir,
+                    start_time,
+                    Some(Utc::now().to_rfc3339().as_str()),
+                    state.total_secs,
+                    &state.session_type,
+                    state.tag_id,
+                    false,
+                );
+            }
+        }
+        state.start_time = None;
         state.status = TimerStatus::Idle;
 
         match state.session_type {
@@ -148,10 +172,29 @@ async fn tick_loop(state: Arc<Mutex<TimerState>>, app: AppHandle) {
         if s.remaining_secs == 0 {
             s.status = TimerStatus::Idle;
             let completed_snapshot = s.clone();
+            let start_time = completed_snapshot.start_time.clone();
+            let session_type = completed_snapshot.session_type.clone();
+            let total_secs = completed_snapshot.total_secs;
+            let tag_id = completed_snapshot.tag_id;
 
             advance_session(&mut s);
             let next_snapshot = s.clone();
             drop(s);
+
+            if let Some(ref start) = start_time.as_ref() {
+                if let Ok(app_data_dir) = app.path().app_data_dir() {
+                    let end = Utc::now().to_rfc3339();
+                    let _ = db::insert_session(
+                        &app_data_dir,
+                        start,
+                        Some(end.as_str()),
+                        total_secs,
+                        &session_type,
+                        tag_id,
+                        true,
+                    );
+                }
+            }
 
             let app_clone = app.clone();
             let status = next_snapshot.status.clone();
@@ -198,6 +241,7 @@ fn advance_session(state: &mut TimerState) {
             state.session_type = SessionType::Work;
             state.remaining_secs = WORK_DURATION;
             state.total_secs = WORK_DURATION;
+            state.tag_id = None;
         }
     }
 }

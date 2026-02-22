@@ -76,7 +76,7 @@ pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
                     let state = timer.get_state();
                     match state.status {
                         TimerStatus::Idle => {
-                            timer.start(app.clone());
+                            timer.start(app.clone(), None);
                         }
                         TimerStatus::Paused => {
                             timer.resume(app.clone());

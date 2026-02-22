@@ -1,7 +1,10 @@
 <script lang="ts">
 	import { Button } from "$lib/components/ui/button";
 	import ProgressRing from "$lib/components/ProgressRing.svelte";
+	import TagPicker from "$lib/components/TagPicker.svelte";
 	import { timer, initTimerListener, destroyTimerListener } from "$lib/stores/timer.svelte";
+
+	let selectedTagId = $state<number | null>(null);
 
 	$effect(() => {
 		initTimerListener();
@@ -15,6 +18,17 @@
 
 <div class="flex flex-col items-center gap-8 py-8 px-6">
 	<h2 class={`text-lg font-medium ${sessionLabelClass}`}>{timer.sessionLabel}</h2>
+
+	{#if timer.isIdle}
+		<div class="flex items-center gap-2">
+			<span class="text-sm text-muted-foreground">Tag:</span>
+			<TagPicker
+				value={selectedTagId}
+				onChange={(id) => (selectedTagId = id)}
+				disabled={false}
+			/>
+		</div>
+	{/if}
 
 	<div class="relative flex items-center justify-center">
 		<ProgressRing progress={timer.progress} size={240} strokeWidth={8} />
@@ -38,7 +52,7 @@
 
 	<div class="flex flex-wrap gap-3 justify-center">
 		{#if timer.isIdle}
-			<Button onclick={() => timer.start()}>Start</Button>
+			<Button onclick={() => timer.start(selectedTagId)}>Start</Button>
 			<Button variant="outline" onclick={() => timer.skip()}>Skip</Button>
 		{:else if timer.isRunning}
 			<Button variant="secondary" onclick={() => timer.pause()}>Pause</Button>

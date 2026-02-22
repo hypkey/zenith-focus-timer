@@ -57,8 +57,8 @@ export const timer = {
     }
   },
 
-  async start() {
-    await invoke("start_timer");
+  async start(tagId?: number | null) {
+    await invoke("start_timer", { tagId: tagId ?? null });
   },
   async pause() {
     await invoke("pause_timer");
