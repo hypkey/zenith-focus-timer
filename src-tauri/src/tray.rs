@@ -1,14 +1,27 @@
 use std::sync::OnceLock;
 
 use tauri::{
+    image::Image,
     menu::{Menu, MenuItem, PredefinedMenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconEvent},
     Manager,
 };
 
-use crate::models::TimerStatus;
+use crate::models::{SessionType, TimerStatus};
 
 static TRAY_ID: OnceLock<String> = OnceLock::new();
+
+const ICON_IDLE: Image<'static> = tauri::include_image!("icons/tray/tray_idle.png");
+const ICON_WORKING: Image<'static> = tauri::include_image!("icons/tray/tray_working.png");
+const ICON_BREAK: Image<'static> = tauri::include_image!("icons/tray/tray_break.png");
+
+fn icon_for_state(status: TimerStatus, session_type: SessionType) -> Image<'static> {
+    match (status, session_type) {
+        (TimerStatus::Running | TimerStatus::Paused, SessionType::Work) => ICON_WORKING,
+        (TimerStatus::Running | TimerStatus::Paused, SessionType::ShortBreak | SessionType::LongBreak) => ICON_BREAK,
+        (TimerStatus::Idle, _) => ICON_IDLE,
+    }
+}
 
 fn format_time(secs: u32) -> String {
     let mins = secs / 60;
@@ -89,8 +102,20 @@ pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         .build(app)?;
 
     let _ = TRAY_ID.set(tray.id().as_ref().to_string());
+    update_tray_icon(app.handle(), TimerStatus::Idle, SessionType::Work);
 
     Ok(())
+}
+
+pub fn update_tray_icon(app: &tauri::AppHandle, status: TimerStatus, session_type: SessionType) {
+    if let Some(id) = TRAY_ID.get() {
+        if let Some(tray) = app.tray_by_id(id.as_str()) {
+            let icon = icon_for_state(status, session_type);
+            let _ = tray.set_icon(Some(icon));
+            #[cfg(target_os = "macos")]
+            let _ = tray.set_icon_as_template(true);
+        }
+    }
 }
 
 pub fn update_tray_title(app: &tauri::AppHandle, remaining_secs: u32) {
@@ -104,7 +129,7 @@ pub fn update_tray_title(app: &tauri::AppHandle, remaining_secs: u32) {
 pub fn clear_tray_title(app: &tauri::AppHandle) {
     if let Some(id) = TRAY_ID.get() {
         if let Some(tray) = app.tray_by_id(id.as_str()) {
-            let _ = tray.set_title(None::<&str>);
+            let _ = tray.set_title(Some(""));
         }
     }
 }

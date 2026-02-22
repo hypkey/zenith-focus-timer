@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "generate-tray-icons": "node scripts/generate-tray-icons.cjs",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json",
     "tauri": "tauri",
@@ -19,6 +20,7 @@
     "@tauri-apps/cli": "^2.10.0",
     "@tsconfig/svelte": "^5.0.6",
     "@types/node": "^24.10.1",
+    "pngjs": "^7.0.0",
     "svelte": "^5.45.2",
     "svelte-check": "^4.3.4",
     "tailwindcss": "^4.2.0",
