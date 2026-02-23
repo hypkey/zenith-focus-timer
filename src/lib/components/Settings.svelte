@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { invoke } from "@tauri-apps/api/core";
 	import { Button } from "$lib/components/ui/button";
+	import { settingsStore } from "$lib/stores/settings.svelte";
 	import { tagsStore } from "$lib/stores/tags.svelte";
 	import type { AppSettings, Tag } from "$lib/types";
 
@@ -9,23 +10,36 @@
 	}
 	let { onSettingsChange }: Props = $props();
 
-	let settings = $state<AppSettings | null>(null);
 	let newTagName = $state("");
 	let newTagColor = $state("#C67B5C");
 
+	const settings = $derived(settingsStore.settings);
 	const tags = $derived(tagsStore.tags);
 
 	$effect(() => {
-		invoke<AppSettings>("get_settings").then((s) => (settings = s));
+		settingsStore.refresh();
 		tagsStore.refresh();
 	});
 
+	async function saveAndNotify(updated: AppSettings) {
+		await invoke("update_settings", { newSettings: updated });
+		await settingsStore.refresh();
+		onSettingsChange?.();
+	}
+
 	async function toggleShowStats() {
 		if (!settings) return;
-		const updated = { ...settings, show_stats: !settings.show_stats };
-		await invoke("update_settings", { newSettings: updated });
-		settings = updated;
-		onSettingsChange?.();
+		await saveAndNotify({ ...settings, show_stats: !settings.show_stats });
+	}
+
+	async function toggleDailyGoal() {
+		if (!settings) return;
+		await saveAndNotify({ ...settings, daily_goal_enabled: !settings.daily_goal_enabled });
+	}
+
+	async function updateDailyGoalTarget(target: number) {
+		if (!settings) return;
+		await saveAndNotify({ ...settings, daily_goal_target: target });
 	}
 
 	async function createTag() {
@@ -63,6 +77,32 @@
 				/>
 				<span class="text-sm text-foreground">Show Stats Tab</span>
 			</label>
+			<label class="flex items-center gap-3 cursor-pointer">
+				<input
+					type="checkbox"
+					checked={settings.daily_goal_enabled}
+					onchange={toggleDailyGoal}
+					class="size-4 rounded border-input"
+				/>
+				<span class="text-sm text-foreground">Enable Daily Goal</span>
+			</label>
+			{#if settings.daily_goal_enabled}
+				<div class="flex items-center gap-2">
+					<label for="goal-target" class="text-sm text-foreground">Target (sessions):</label>
+					<input
+						id="goal-target"
+						type="number"
+						min="1"
+						max="20"
+						value={settings.daily_goal_target}
+						onchange={(e) => {
+							const v = parseInt((e.target as HTMLInputElement).value, 10);
+							if (v >= 1 && v <= 20) updateDailyGoalTarget(v);
+						}}
+						class="h-9 w-20 rounded-md border border-input bg-background px-2 text-sm"
+					/>
+				</div>
+			{/if}
 		{:else}
 			<p class="text-sm text-muted-foreground">Loading...</p>
 		{/if}

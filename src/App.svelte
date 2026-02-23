@@ -1,23 +1,19 @@
 <script lang="ts">
-	import { invoke } from "@tauri-apps/api/core";
 	import { Tabs, TabsContent, TabsList, TabsTrigger } from "$lib/components/ui/tabs";
 	import Timer from "$lib/components/Timer.svelte";
 	import Stats from "$lib/components/Stats.svelte";
 	import Settings from "$lib/components/Settings.svelte";
-	import type { AppSettings } from "$lib/types";
+	import { settingsStore } from "$lib/stores/settings.svelte";
 
 	let activeTab = $state("timer");
-	let showStats = $state(false);
+	const showStats = $derived(settingsStore.settings?.show_stats ?? false);
 
 	$effect(() => {
-		invoke<AppSettings>("get_settings").then((s) => {
-			showStats = s.show_stats;
-		});
+		settingsStore.refresh();
 	});
 
-	async function refreshSettings() {
-		const s = await invoke<AppSettings>("get_settings");
-		showStats = s.show_stats;
+	function refreshSettings() {
+		settingsStore.refresh();
 	}
 </script>
 

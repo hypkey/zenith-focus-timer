@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { invoke } from "@tauri-apps/api/core";
+	import SessionHistory from "$lib/components/SessionHistory.svelte";
 	import type { DailyStats, WeeklyStats } from "$lib/types";
 
 	let dailyStats = $state<DailyStats | null>(null);
@@ -10,8 +11,12 @@
 	function formatDuration(secs: number): string {
 		const h = Math.floor(secs / 3600);
 		const m = Math.floor((secs % 3600) / 60);
-		if (h > 0) return `${h}h ${m}m`;
-		return `${m}m`;
+		const s = Math.floor(secs % 60);
+		const parts: string[] = [];
+		if (h > 0) parts.push(`${h}h`);
+		if (m > 0) parts.push(`${m}m`);
+		parts.push(`${s}s`);
+		return parts.join(" ");
 	}
 
 	function getTodayDate(): string {
@@ -100,5 +105,7 @@
 				</ul>
 			</section>
 		{/if}
+
+		<SessionHistory />
 	{/if}
 </div>
